@@ -1,11 +1,12 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed } from 'vue'
 
 const pageSize = 10
 const pageStart = ref(0)
 
 const keyword = ref('')
 const data = ref([])
+const result = ref([])
 const catchkeyword = ref('catch')
 
 async function fetchData() {
@@ -19,10 +20,16 @@ fetchData()
 function onInput(e) {
   keyword.value = e.target.value
   console.log('keyword.value:', keyword.value)
-  data.value = data.value.filter((item) => item['ar'].match(keyword.value))
 
-  console.log(data.value)
+  result.value = data.value.filter((item) => item['ar'].match(keyword.value))
+
+  console.log('Origin: ', data.value)
+  console.log('After:', result.value)
 }
+
+const datas = computed(() => {
+  return keyword.value == '' ? data.value : result.value
+})
 </script>
 
 <template>
@@ -31,8 +38,8 @@ function onInput(e) {
     <div class="row g-3">
       <div class="col-auto">
         <!-- @input="onInput" -->
+        <!-- @compositionend="onInput" for 中文輸入，但刪除自感應不到 -->
         <input
-          @compositionend="onInput"
           @input="onInput"
           :value="keyword"
           type="text"
@@ -61,12 +68,13 @@ function onInput(e) {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(dataitem, index) in data" :key="index">
+        <tr v-for="(dataitem, index) in datas" :key="index">
           <td>{{ dataitem['sno'] }}</td>
           <td>{{ dataitem['sna'] }}</td>
           <td>{{ dataitem['sarea'] }}</td>
           <td>
-            {{ dataitem['ar'] }} <span :class="catchkeyword">{{ keyword }}</span>
+            {{ dataitem['ar'] }}
+            <!-- <span :class="catchkeyword">{{ keyword }}</span> -->
           </td>
           <td>{{ dataitem['total'] }}</td>
           <td>{{ dataitem['available_rent_bikes'] }}</td>
