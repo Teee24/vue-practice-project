@@ -1,34 +1,53 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-const pageSize = 10
+const pageSize = ref(10)
 const pageStart = ref(0)
+const currentPage = ref(1)
 
-const keyword = ref('')
-const data = ref([])
-const result = ref([])
 const catchkeyword = ref('catch')
+const keyword = ref('')
+const beforeSearchData = ref([])
+const afterSearchData = ref([])
 
 async function fetchData() {
   const res = await fetch(
     `https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json`
   )
-  data.value = await res.json()
-  console.log(data.value)
+  beforeSearchData.value = await res.json()
+  //切分資料
+  beforeSearchData.value = beforeSearchData.value.slice(
+    pageStart,
+    pageStart.value + pageSize.value + 1
+  )
 }
+
 fetchData()
 function onInput(e) {
   keyword.value = e.target.value
-  console.log('keyword.value:', keyword.value)
-
-  result.value = data.value.filter((item) => item['ar'].match(keyword.value))
-
-  console.log('Origin: ', data.value)
-  console.log('After:', result.value)
+  //先篩出資料
+  afterSearchData.value = beforeSearchData.value.filter((item) => item['ar'].match(keyword.value))
+  // 標出關鍵字
+  //用map會傳回新的array
+  afterSearchData.value = afterSearchData.value.map((item) => ({
+    // ...item把item 浅copy成新的
+    ...item,
+    //ar: item['ar']->建立一個名為ar的屬性在新的array裡，值為item['ar']
+    //用正輝表達式避免重複替換，g->golbal，i->不分大小寫
+    ar: item['ar'].replace(new RegExp(keyword.value, 'gi'), (match) => {
+      return `<span class="${catchkeyword.value}">${match}</span>`
+    })
+  }))
 }
-
-const datas = computed(() => {
-  return keyword.value == '' ? data.value : result.value
+function nextPage() {
+  currentPage.value++
+  beforeSearchData.value = beforeSearchData.value.slice(
+    currentPage.value + pageSize.value + 1,
+    pageStart.value + pageSize.value + 1
+  )
+}
+const stationInfo = computed(() => {
+  return keyword.value == '' ? beforeSearchData.value : afterSearchData.value
 })
 </script>
 
@@ -68,14 +87,11 @@ const datas = computed(() => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(dataitem, index) in datas" :key="index">
+        <tr class="text-center" v-for="(dataitem, index) in stationInfo" :key="index">
           <td>{{ dataitem['sno'] }}</td>
           <td>{{ dataitem['sna'] }}</td>
           <td>{{ dataitem['sarea'] }}</td>
-          <td>
-            {{ dataitem['ar'] }}
-            <!-- <span :class="catchkeyword">{{ keyword }}</span> -->
-          </td>
+          <td v-html="dataitem['ar']"></td>
           <td>{{ dataitem['total'] }}</td>
           <td>{{ dataitem['available_rent_bikes'] }}</td>
           <td>{{ dataitem['latitude'] }}</td>
@@ -97,7 +113,7 @@ const datas = computed(() => {
         </li>
         <li class="page-item"><a class="page-link" href="#">3</a></li>
         <li class="page-item">
-          <a class="page-link" href="#">下一頁</a>
+          <a @click="nextPage" class="page-link" href="#">下一頁</a>
         </li>
       </ul>
     </nav>
@@ -105,10 +121,11 @@ const datas = computed(() => {
 </template>
 
 <style>
-/* :hover {
-  background-color: lightskyblue;
-} */
+.table-hover > tbody > tr:hover > td {
+  background-color: #cfe2ff;
+}
 .catch {
   color: red;
+  font-weight: bold;
 }
 </style>
