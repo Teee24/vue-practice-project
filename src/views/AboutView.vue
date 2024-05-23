@@ -1,15 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 
-const pageSize = ref(10)
-const pageStart = ref(0)
-const currentPage = ref(1)
-
-const catchkeyword = ref('catch')
-const keyword = ref('')
+const catchkeyword = ref('catch') // 關鍵字樣式
+const keyword = ref('') // 關鍵字
 const beforeSearchData = ref([])
 const afterSearchData = ref([])
 
+// 撈資料
 async function fetchData() {
   const res = await fetch(
     `https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json`
@@ -50,50 +47,63 @@ const displayrentup = ref(true) // 可租借的腳踏車數量欄位的上升箭
 const displayrentdown = ref(true) // 可租借的腳踏車數量位的上升箭頭
 
 function sortBy(condition, order) {
-  if (condition == 'total' && order == 'down') {
-    displaytotaldown.value = !displaytotaldown.value
-
-    // 總車位數量，降冪
-    stationInfo.value = beforeSearchData.value.sort((a, b) => b.total - a.total)
-  } else if (condition == 'available_rent_bikes' && order == 'down') {
-    displayrentdown.value = !displayrentdown.value
-    displaytotalup.value = !displaytotalup.value
-    // 可租借的腳踏車數量，降冪
-    stationInfo.value = beforeSearchData.value.sort(
-      (a, b) => b.available_rent_bikes - a.available_rent_bikes
-    )
-  } else if (condition == 'available_rent_bikes' && order == 'up') {
-    displayrentup.value = !displayrentup.value
-    displayrentdown.value = !displayrentdown.value
-    // 可租借的腳踏車數量，升冪
-    stationInfo.value = beforeSearchData.value.sort(
-      (a, b) => a.available_rent_bikes - b.available_rent_bikes
-    )
-  } else if (condition == 'total' && order == 'up') {
-    displaytotalup.value = !displaytotalup.value
-    // 總車位數量，升冪
-    stationInfo.value = beforeSearchData.value.sort((a, b) => a.total - b.total)
-  }
+  // if (condition == 'total' && order == 'down') {
+  //   displaytotaldown.value = !displaytotaldown.value
+  //   // 總車位數量，降冪
+  //   stationInfo.value = beforeSearchData.value.sort((a, b) => b.total - a.total)
+  // } else if (condition == 'available_rent_bikes' && order == 'down') {
+  //   displayrentdown.value = !displayrentdown.value
+  //   displaytotalup.value = !displaytotalup.value
+  //   // 可租借的腳踏車數量，降冪
+  //   stationInfo.value = beforeSearchData.value.sort(
+  //     (a, b) => b.available_rent_bikes - a.available_rent_bikes
+  //   )
+  // } else if (condition == 'available_rent_bikes' && order == 'up') {
+  //   displayrentup.value = !displayrentup.value
+  //   displayrentdown.value = !displayrentdown.value
+  //   // 可租借的腳踏車數量，升冪
+  //   stationInfo.value = beforeSearchData.value.sort(
+  //     (a, b) => a.available_rent_bikes - b.available_rent_bikes
+  //   )
+  // } else if (condition == 'total' && order == 'up') {
+  //   displaytotalup.value = !displaytotalup.value
+  //   // 總車位數量，升冪
+  //   stationInfo.value = beforeSearchData.value.sort((a, b) => a.total - b.total)
+  // }
+  const sortcondition = condition == 'total' ? 'total' : 'available_rent_bikes'
+  const sortorder = order == 'down' ? 1 : -1
+  // 利用order * 改變sort排序方向
+  stationInfo.value = beforeSearchData.value.sort(
+    (a, b) => sortorder * a[sortcondition] - b[sortcondition]
+  )
 }
+
+const pageSize = ref(20) // 每頁20筆資料
+const pageStart = ref(0) // 從第幾筆資料開始
+const currentPage = ref(1) //目前所在的頁數
+
+const totalPage = beforeSearchData.value.length / 10 + 1
+
+console.log(totalPage)
+// 分頁
+
+// computed 有偵測到響應式變數改變就觸發
+const stationInfo_sliced = computed(() => {
+  return stationInfo.value.slice(
+    pageSize.value * (currentPage.value - 1),
+    pageSize.value * currentPage.value
+  )
+})
 
 // 下一頁
 function nextPage() {
   currentPage.value++
-  beforeSearchData.value = beforeSearchData.value.slice(
-    currentPage.value + pageSize.value + 1,
-    pageStart.value + pageSize.value + 1
-  )
 }
 
-// onMounted(() => {
-//
-//   console.log('Mounted :', stationInfo.value)
-//   // 切分資料
-//   const stationInfo_sliced = stationInfo.value.slice(
-//     pageStart,
-//     pageStart.value + pageSize.value + 1
-//   )
-// })
+// 上一頁
+function previousPage() {
+  currentPage.value++
+}
 </script>
 
 <template>
@@ -188,7 +198,7 @@ function nextPage() {
         </tr>
       </thead>
       <tbody>
-        <tr class="text-center" v-for="(dataitem, index) in stationInfo" :key="index">
+        <tr class="text-center" v-for="(dataitem, index) in stationInfo_sliced" :key="index">
           <td>{{ dataitem['sno'] }}</td>
           <td>{{ dataitem['sna'] }}</td>
           <td>{{ dataitem['sarea'] }}</td>
@@ -205,13 +215,11 @@ function nextPage() {
     <!-- 下 -->
     <nav aria-label="...">
       <ul class="pagination justify-content-center">
-        <li class="page-item disabled">
-          <a class="page-link">上一頁</a>
+        <li @click="previousPage" class="page-item">
+          <a class="page-link" href="#">上一頁</a>
         </li>
-        <li class="page-item"><a class="page-link" href="#">1</a></li>
-        <li class="page-item active" aria-current="page">
-          <a class="page-link" href="#">2</a>
-        </li>
+        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+        <li class="page-item"><a class="page-link" href="#">2</a></li>
         <li class="page-item"><a class="page-link" href="#">3</a></li>
         <li class="page-item">
           <a @click="nextPage" class="page-link" href="#">下一頁</a>
