@@ -1,98 +1,93 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 const catchkeyword = ref('catch') // 關鍵字樣式
 const keyword = ref('') // 關鍵字
 const beforeSearchData = ref([])
-const afterSearchData = ref([])
+let totalPageLength = ref(0)
 
 // 撈資料
 async function fetchData() {
   const res = await fetch(
     `https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json`
   )
-  beforeSearchData.value = await res.json()
-  stationInfo.value = beforeSearchData.value
-  console.log('setup:', stationInfo.value)
+  const data = await res.json()
+  beforeSearchData.value = data
 }
-
-fetchData()
 
 // 關鍵字搜尋
-function onInput(e) {
-  keyword.value = e.target.value
-  // 先篩出資料
-  afterSearchData.value = beforeSearchData.value.filter((item) => item['ar'].match(keyword.value))
-  // 標出關鍵字
-  // 用map會傳回新的array
-  afterSearchData.value = afterSearchData.value.map((item) => ({
-    // ...item把item 浅copy成新的
-    ...item,
-    // ar: item['ar']->建立一個名為ar的屬性在新的array裡，值為item['ar']
-    // 用正輝表達式避免重複替換，g->golbal，i->不分大小寫
-    ar: item['ar'].replace(new RegExp(keyword.value, 'gi'), (match) => {
-      return `<span class="${catchkeyword.value}">${match}</span>`
-    })
-  }))
-}
-
-const stationInfo = computed(() => {
-  return keyword.value == '' ? beforeSearchData.value : afterSearchData.value
+const afterSearchData = computed(() => {
+  return beforeSearchData.value.filter((item) => item['ar'].match(keyword.value))
 })
 
+// 標出關鍵字
+// 用map會傳回新的array
+// const highlight = ref()
+const afterHighlightData = afterSearchData.value.map((item) => ({
+  // ...item把item 浅copy成新的
+  ...item,
+  // ar: item['ar']->建立一個名為ar的屬性在新的array裡，值為item['ar']
+  // 用正規表達式避免重複替換，g->golbal，i->不分大小寫
+  ar: item['ar'].replace(new RegExp(keyword.value, 'gi'), (match) => {
+    return `<span class="${catchkeyword.value}">${match}</span>`
+  })
+}))
+console.log(afterHighlightData)
+
 // 排序
-const displaytotalup = ref(true) // 總車位數量欄位的上升箭頭
-const displaytotaldown = ref(true) // 總車位數量欄位的下降箭頭
-const displayrentup = ref(true) // 可租借的腳踏車數量欄位的上升箭頭
-const displayrentdown = ref(true) // 可租借的腳踏車數量位的上升箭頭
+// 排序圖示
+const caretUpTotal = ref('bi bi-caret-up')
+const caretDownTotal = ref('bi bi-caret-down')
+const caretUpRent = ref('bi bi-caret-up')
+const caretDownRent = ref('bi bi-caret-down')
+// 排序值
+const currentConditon = ref('')
+const currentOrder = ref('')
 
 function sortBy(condition, order) {
-  // if (condition == 'total' && order == 'down') {
-  //   displaytotaldown.value = !displaytotaldown.value
-  //   // 總車位數量，降冪
-  //   stationInfo.value = beforeSearchData.value.sort((a, b) => b.total - a.total)
-  // } else if (condition == 'available_rent_bikes' && order == 'down') {
-  //   displayrentdown.value = !displayrentdown.value
-  //   displaytotalup.value = !displaytotalup.value
-  //   // 可租借的腳踏車數量，降冪
-  //   stationInfo.value = beforeSearchData.value.sort(
-  //     (a, b) => b.available_rent_bikes - a.available_rent_bikes
-  //   )
-  // } else if (condition == 'available_rent_bikes' && order == 'up') {
-  //   displayrentup.value = !displayrentup.value
-  //   displayrentdown.value = !displayrentdown.value
-  //   // 可租借的腳踏車數量，升冪
-  //   stationInfo.value = beforeSearchData.value.sort(
-  //     (a, b) => a.available_rent_bikes - b.available_rent_bikes
-  //   )
-  // } else if (condition == 'total' && order == 'up') {
-  //   displaytotalup.value = !displaytotalup.value
-  //   // 總車位數量，升冪
-  //   stationInfo.value = beforeSearchData.value.sort((a, b) => a.total - b.total)
-  // }
-  const sortcondition = condition == 'total' ? 'total' : 'available_rent_bikes'
-  const sortorder = order == 'down' ? 1 : -1
-  // 利用order * 改變sort排序方向
-  stationInfo.value = beforeSearchData.value.sort(
-    (a, b) => sortorder * a[sortcondition] - b[sortcondition]
-  )
-}
+  // 排序圖示改變
 
-const pageSize = ref(20) // 每頁20筆資料
-const pageStart = ref(0) // 從第幾筆資料開始
+  if (order == 'up' && condition == 'total') {
+    caretUpTotal.value = 'bi bi-caret-up-fill'
+    caretDownTotal.value = 'bi bi-caret-down'
+    caretUpRent.value = 'bi bi-caret-up'
+    caretDownRent.value = 'bi bi-caret-down'
+  } else if (order == 'down' && condition == 'total') {
+    caretDownTotal.value = 'bi bi-caret-down-fill'
+    caretUpTotal.value = 'bi bi-caret-up'
+    caretUpRent.value = 'bi bi-caret-up'
+    caretDownRent.value = 'bi bi-caret-down'
+  } else if (order == 'up' && condition == 'available_rent_bikes') {
+    caretUpRent.value = 'bi bi-caret-up-fill'
+    caretDownRent.value = 'bi bi-caret-down'
+    caretUpTotal.value = 'bi bi-caret-up'
+    caretDownTotal.value = 'bi bi-caret-down'
+  } else if (order == 'down' && condition == 'available_rent_bikes') {
+    caretDownRent.value = 'bi bi-caret-down-fill'
+    caretUpRent.value = 'bi bi-caret-up'
+    caretUpTotal.value = 'bi bi-caret-up'
+    caretDownTotal.value = 'bi bi-caret-down'
+  }
+
+  currentConditon.value = condition
+  currentOrder.value = order == 'down' ? 1 : -1
+}
+//排序後
+const stationInfoSort = computed(() => {
+  return afterSearchData.value.sort(
+    (a, b) => currentOrder.value * (a[currentConditon.value] - b[currentConditon.value])
+  )
+})
+
+const pageSize = ref(10)
 const currentPage = ref(1) //目前所在的頁數
 
-const totalPage = beforeSearchData.value.length / 10 + 1
-
-console.log(totalPage)
 // 分頁
 
 // computed 有偵測到響應式變數改變就觸發
 const stationInfo_sliced = computed(() => {
-  return stationInfo.value.slice(
-    pageSize.value * (currentPage.value - 1),
-    pageSize.value * currentPage.value
-  )
+  // 每頁20筆資料
+  return stationInfoSort.value.slice(20 * (currentPage.value - 1), 20 * currentPage.value)
 })
 
 // 下一頁
@@ -104,6 +99,21 @@ function nextPage() {
 function previousPage() {
   currentPage.value++
 }
+
+// 跳頁
+function goToPage(pageNumber) {
+  currentPage.value = pageNumber
+}
+
+// 總頁數
+totalPageLength = computed(() => {
+  return stationInfoSort.value.length //總頁數
+})
+console.log('totalpage: ', totalPageLength.value)
+
+onMounted(async () => {
+  await fetchData()
+})
 </script>
 
 <template>
@@ -113,14 +123,7 @@ function previousPage() {
       <div class="col-auto">
         <!-- @input="onInput" -->
         <!-- @compositionend="onInput" for 中文輸入，但刪除自感應不到 -->
-        <input
-          @input="onInput"
-          :value="keyword"
-          type="text"
-          id="keyword"
-          class="form-control"
-          placeholder="輸入站點地址"
-        />
+        <input v-model="keyword" type="text" class="form-control" placeholder="輸入站點地址" />
       </div>
       <div class="col-auto"><button type="button" class="btn btn-primary">查詢</button></div>
     </div>
@@ -138,26 +141,8 @@ function previousPage() {
             <div class="flex items-center justify-center">
               <span>總車位數量</span>
               <span>
-                <i
-                  v-show="displaytotalup"
-                  @click="sortBy('total', 'up')"
-                  class="bi bi-caret-up"
-                ></i>
-                <i
-                  v-show="!displaytotalup"
-                  @click="sortBy('total', 'up')"
-                  class="bi bi-caret-up-fill"
-                ></i>
-                <i
-                  v-show="displaytotaldown"
-                  @click="sortBy('total', 'down')"
-                  class="bi bi-caret-down"
-                ></i>
-                <i
-                  v-show="!displaytotaldown"
-                  @click="sortBy('total', 'down')"
-                  class="bi bi-caret-down-fill"
-                ></i>
+                <i @click="sortBy('total', 'up')" :class="caretUpTotal"></i>
+                <i @click="sortBy('total', 'down')" :class="caretDownTotal"></i>
               </span>
             </div>
           </th>
@@ -166,28 +151,8 @@ function previousPage() {
               <span> 可租借的腳踏車數量 </span>
               <div class="icon-container">
                 <span>
-                  <i
-                    v-show="displayrentup"
-                    @click="sortBy('available_rent_bikes', 'up')"
-                    class="bi bi-caret-up"
-                  >
-                  </i
-                  ><i
-                    v-show="!displayrentup"
-                    @click="sortBy('available_rent_bikes', 'up')"
-                    class="bi bi-caret-up-fill"
-                  ></i>
-                  <i
-                    v-show="displayrentdown"
-                    @click="sortBy('available_rent_bikes', 'down')"
-                    class="bi bi-caret-down"
-                  >
-                  </i>
-                  <i
-                    v-show="!displayrentdown"
-                    @click="sortBy('available_rent_bikes', 'down')"
-                    class="bi bi-caret-down-fill"
-                  ></i>
+                  <i @click="sortBy('available_rent_bikes', 'up')" :class="caretUpRent"> </i>
+                  <i @click="sortBy('available_rent_bikes', 'down')" :class="caretDownRent"> </i>
                 </span>
               </div>
             </div>
@@ -198,11 +163,12 @@ function previousPage() {
         </tr>
       </thead>
       <tbody>
-        <tr class="text-center" v-for="(dataitem, index) in stationInfo_sliced" :key="index">
+        <tr class="text-center" v-for="(dataitem, index) in stationInfoSort" :key="index">
           <td>{{ dataitem['sno'] }}</td>
           <td>{{ dataitem['sna'] }}</td>
           <td>{{ dataitem['sarea'] }}</td>
           <td v-html="dataitem['ar']"></td>
+          <!-- <td>{{ dataitem['ar'] }}</td> -->
           <td>{{ dataitem['total'] }}</td>
           <td>{{ dataitem['available_rent_bikes'] }}</td>
           <td>{{ dataitem['latitude'] }}</td>
@@ -218,9 +184,14 @@ function previousPage() {
         <li @click="previousPage" class="page-item">
           <a class="page-link" href="#">上一頁</a>
         </li>
-        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-        <li class="page-item"><a class="page-link" href="#">2</a></li>
-        <li class="page-item"><a class="page-link" href="#">3</a></li>
+        <li
+          v-for="pageNumber in 10"
+          :key="pageNumber"
+          class="page-item"
+          :class="{ active: currentPage === pageNumber }"
+        >
+          <a @click="goToPage(pageNumber)" class="page-link" href="#">{{ pageNumber }}</a>
+        </li>
         <li class="page-item">
           <a @click="nextPage" class="page-link" href="#">下一頁</a>
         </li>
