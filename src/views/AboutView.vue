@@ -21,18 +21,18 @@ async function fetchData() {
 
 fetchData()
 
-//關鍵字搜尋
+// 關鍵字搜尋
 function onInput(e) {
   keyword.value = e.target.value
-  //先篩出資料
+  // 先篩出資料
   afterSearchData.value = beforeSearchData.value.filter((item) => item['ar'].match(keyword.value))
   // 標出關鍵字
-  //用map會傳回新的array
+  // 用map會傳回新的array
   afterSearchData.value = afterSearchData.value.map((item) => ({
     // ...item把item 浅copy成新的
     ...item,
-    //ar: item['ar']->建立一個名為ar的屬性在新的array裡，值為item['ar']
-    //用正輝表達式避免重複替換，g->golbal，i->不分大小寫
+    // ar: item['ar']->建立一個名為ar的屬性在新的array裡，值為item['ar']
+    // 用正輝表達式避免重複替換，g->golbal，i->不分大小寫
     ar: item['ar'].replace(new RegExp(keyword.value, 'gi'), (match) => {
       return `<span class="${catchkeyword.value}">${match}</span>`
     })
@@ -43,29 +43,40 @@ const stationInfo = computed(() => {
   return keyword.value == '' ? beforeSearchData.value : afterSearchData.value
 })
 
-//排序
+// 排序
+const displaytotalup = ref(true) // 總車位數量欄位的上升箭頭
+const displaytotaldown = ref(true) // 總車位數量欄位的下降箭頭
+const displayrentup = ref(true) // 可租借的腳踏車數量欄位的上升箭頭
+const displayrentdown = ref(true) // 可租借的腳踏車數量位的上升箭頭
+
 function sortBy(condition, order) {
-  console.log(condition)
   if (condition == 'total' && order == 'down') {
+    displaytotaldown.value = !displaytotaldown.value
+
     // 總車位數量，降冪
     stationInfo.value = beforeSearchData.value.sort((a, b) => b.total - a.total)
   } else if (condition == 'available_rent_bikes' && order == 'down') {
+    displayrentdown.value = !displayrentdown.value
+    displaytotalup.value = !displaytotalup.value
     // 可租借的腳踏車數量，降冪
     stationInfo.value = beforeSearchData.value.sort(
       (a, b) => b.available_rent_bikes - a.available_rent_bikes
     )
   } else if (condition == 'available_rent_bikes' && order == 'up') {
+    displayrentup.value = !displayrentup.value
+    displayrentdown.value = !displayrentdown.value
     // 可租借的腳踏車數量，升冪
     stationInfo.value = beforeSearchData.value.sort(
       (a, b) => a.available_rent_bikes - b.available_rent_bikes
     )
   } else if (condition == 'total' && order == 'up') {
+    displaytotalup.value = !displaytotalup.value
     // 總車位數量，升冪
     stationInfo.value = beforeSearchData.value.sort((a, b) => a.total - b.total)
   }
 }
 
-//下一頁
+// 下一頁
 function nextPage() {
   currentPage.value++
   beforeSearchData.value = beforeSearchData.value.slice(
@@ -77,7 +88,7 @@ function nextPage() {
 // onMounted(() => {
 //
 //   console.log('Mounted :', stationInfo.value)
-//   //切分資料
+//   // 切分資料
 //   const stationInfo_sliced = stationInfo.value.slice(
 //     pageStart,
 //     pageStart.value + pageSize.value + 1
@@ -113,8 +124,64 @@ function nextPage() {
           <th>站點名稱</th>
           <th>站點所在區域</th>
           <th>站點地址</th>
-          <th @click="sortBy('total', 'down')">總車位數量</th>
-          <th @click="sortBy('available_rent_bikes', 'down')">可租借的腳踏車數量</th>
+          <th>
+            <div class="flex items-center justify-center">
+              <span>總車位數量</span>
+              <span>
+                <i
+                  v-show="displaytotalup"
+                  @click="sortBy('total', 'up')"
+                  class="bi bi-caret-up"
+                ></i>
+                <i
+                  v-show="!displaytotalup"
+                  @click="sortBy('total', 'up')"
+                  class="bi bi-caret-up-fill"
+                ></i>
+                <i
+                  v-show="displaytotaldown"
+                  @click="sortBy('total', 'down')"
+                  class="bi bi-caret-down"
+                ></i>
+                <i
+                  v-show="!displaytotaldown"
+                  @click="sortBy('total', 'down')"
+                  class="bi bi-caret-down-fill"
+                ></i>
+              </span>
+            </div>
+          </th>
+          <th>
+            <div class="flex items-center justify-center">
+              <span> 可租借的腳踏車數量 </span>
+              <div class="icon-container">
+                <span>
+                  <i
+                    v-show="displayrentup"
+                    @click="sortBy('available_rent_bikes', 'up')"
+                    class="bi bi-caret-up"
+                  >
+                  </i
+                  ><i
+                    v-show="!displayrentup"
+                    @click="sortBy('available_rent_bikes', 'up')"
+                    class="bi bi-caret-up-fill"
+                  ></i>
+                  <i
+                    v-show="displayrentdown"
+                    @click="sortBy('available_rent_bikes', 'down')"
+                    class="bi bi-caret-down"
+                  >
+                  </i>
+                  <i
+                    v-show="!displayrentdown"
+                    @click="sortBy('available_rent_bikes', 'down')"
+                    class="bi bi-caret-down-fill"
+                  ></i>
+                </span>
+              </div>
+            </div>
+          </th>
           <th>站點緯度</th>
           <th>站點經度</th>
           <th>可歸還的腳踏車數量</th>
@@ -159,12 +226,18 @@ function nextPage() {
   background-color: #cfe2ff;
 }
 
-.table-hover > thead :hover {
-  background-color: lightskyblue;
-  color: azure;
-}
 .catch {
   color: red;
   font-weight: bold;
+}
+.flex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-container {
+  display: flex;
+  flex-direction: column;
 }
 </style>

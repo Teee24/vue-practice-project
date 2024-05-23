@@ -10,7 +10,8 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       // 引入bootstrap套件
-      '~bootstrap': fileURLToPath(new URL('./node_modules/bootstrap', import.meta.url))
+      '~bootstrap': fileURLToPath(new URL('./node_modules/bootstrap', import.meta.url)),
+      '~bootstrap-icons': fileURLToPath(new URL('./node_modules/bootstrap-icons', import.meta.url))
     }
   }
 })
