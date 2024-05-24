@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-side-effects-in-computed-properties -->
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 
@@ -15,13 +16,14 @@ async function fetchData() {
 }
 
 // 關鍵字搜尋
+// TODO: afterSearchData 搜尋過後的資料
 const afterSearchData = computed(() => {
   return beforeSearchData.value.filter((item) => item['ar'].match(keyword.value))
 })
 
 // 標出關鍵字
 // 用map會傳回新的array
-
+// TODO: afterHighlightData標出關鍵字的資料
 const afterHighlightData = computed(() => {
   if (keyword.value) {
     return afterSearchData.value.map((item) => ({
@@ -51,6 +53,11 @@ const currentOrder = ref('')
 function sortBy(condition, order) {
   // 排序圖示改變
 
+  console.log('sorting!')
+  console.log(condition)
+  currentConditon.value = condition
+  currentOrder.value = order === 'down' ? 1 : -1
+
   if (order == 'up' && condition == 'total') {
     caretUpTotal.value = 'bi bi-caret-up-fill'
     caretDownTotal.value = 'bi bi-caret-down'
@@ -72,11 +79,9 @@ function sortBy(condition, order) {
     caretUpTotal.value = 'bi bi-caret-up'
     caretDownTotal.value = 'bi bi-caret-down'
   }
-
-  currentConditon.value = condition
-  currentOrder.value = order == 'down' ? 1 : -1
 }
 //排序後
+// TODO: stationInfoSort 排序過後的資料
 const stationInfoSort = computed(() => {
   return afterHighlightData.value.sort(
     (a, b) => currentOrder.value * (a[currentConditon.value] - b[currentConditon.value])
@@ -87,11 +92,15 @@ const stationInfoSort = computed(() => {
 const pageSize = ref(10)
 const currentPage = ref(1) //目前所在的頁數
 // 計算總比數
-const totalPageLength = computed(() => {
+const totalInfoLength = computed(() => {
   return stationInfoSort.value.length
 })
-console.log('totalpage: ', totalPageLength.value.length)
+//總頁數
+const totalPage = computed(() => {
+  return Math.trunc(totalInfoLength.value / 20) + 1
+})
 
+// TODO: stationInfo_sliced 分頁過後的資料
 // computed 有偵測到響應式變數改變就觸發
 const stationInfo_sliced = computed(() => {
   // 每頁20筆資料
@@ -105,7 +114,10 @@ function nextPage() {
 
 // 上一頁
 function previousPage() {
-  currentPage.value++
+  if (currentPage.value === 1) {
+    currentPage.value === 1
+  }
+  currentPage.value--
 }
 
 // 跳頁
@@ -165,7 +177,7 @@ onMounted(async () => {
         </tr>
       </thead>
       <tbody>
-        <tr class="text-center" v-for="(dataitem, index) in stationInfoSort" :key="index">
+        <tr class="text-center" v-for="(dataitem, index) in stationInfo_sliced" :key="index">
           <td>{{ dataitem['sno'] }}</td>
           <td>{{ dataitem['sna'] }}</td>
           <td>{{ dataitem['sarea'] }}</td>
@@ -187,7 +199,7 @@ onMounted(async () => {
           <a class="page-link" href="#">上一頁</a>
         </li>
         <li
-          v-for="pageNumber in 10"
+          v-for="pageNumber in totalPage"
           :key="pageNumber"
           class="page-item"
           :class="{ active: currentPage === pageNumber }"
