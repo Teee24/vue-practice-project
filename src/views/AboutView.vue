@@ -40,6 +40,15 @@ const afterHighlightData = computed(() => {
   }
 })
 
+// 分頁
+const currentPage = ref(1) //目前所在的頁數
+// TODO: stationInfo_sliced 分頁過後的資料
+// computed 有偵測到響應式變數改變就觸發
+const stationInfo_sliced = computed(() => {
+  // 每頁20筆資料
+  return afterHighlightData.value.slice(20 * (currentPage.value - 1), 20 * currentPage.value)
+})
+
 // 排序
 // 排序圖示
 const caretUpTotal = ref('bi bi-caret-up')
@@ -53,8 +62,6 @@ const currentOrder = ref('')
 function sortBy(condition, order) {
   // 排序圖示改變
 
-  console.log('sorting!')
-  console.log(condition)
   currentConditon.value = condition
   currentOrder.value = order === 'down' ? 1 : -1
 
@@ -80,32 +87,25 @@ function sortBy(condition, order) {
     caretDownTotal.value = 'bi bi-caret-down'
   }
 }
+
 //排序後
 // TODO: stationInfoSort 排序過後的資料
 const stationInfoSort = computed(() => {
-  return afterHighlightData.value.sort(
+  return stationInfo_sliced.value.sort(
     (a, b) => currentOrder.value * (a[currentConditon.value] - b[currentConditon.value])
   )
 })
 
-// 分頁
-const pageSize = ref(10)
-const currentPage = ref(1) //目前所在的頁數
 // 計算總比數
 const totalInfoLength = computed(() => {
   return stationInfoSort.value.length
 })
-//總頁數
-const totalPage = computed(() => {
-  return Math.trunc(totalInfoLength.value / 20) + 1
-})
+// 每次只顯示10個頁碼
+const pageSize = ref(10) //每次顯示頁碼的量
+const stratPage = ref() //顯示頁碼的起始值
+const endPage = ref() //顯示頁碼的結束值
 
-// TODO: stationInfo_sliced 分頁過後的資料
-// computed 有偵測到響應式變數改變就觸發
-const stationInfo_sliced = computed(() => {
-  // 每頁20筆資料
-  return stationInfoSort.value.slice(20 * (currentPage.value - 1), 20 * currentPage.value)
-})
+// const displayPage
 
 // 下一頁
 function nextPage() {
@@ -177,7 +177,7 @@ onMounted(async () => {
         </tr>
       </thead>
       <tbody>
-        <tr class="text-center" v-for="(dataitem, index) in stationInfo_sliced" :key="index">
+        <tr class="text-center" v-for="(dataitem, index) in stationInfoSort" :key="index">
           <td>{{ dataitem['sno'] }}</td>
           <td>{{ dataitem['sna'] }}</td>
           <td>{{ dataitem['sarea'] }}</td>
