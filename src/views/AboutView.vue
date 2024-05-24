@@ -1,6 +1,7 @@
 <!-- eslint-disable vue/no-side-effects-in-computed-properties -->
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import InputText from '@/components/InputKeyword.vue'
 
 const catchkeyword = ref('catch') // 關鍵字樣式
 const keyword = ref('') // 關鍵字
@@ -175,11 +176,7 @@ onMounted(async () => {
   <div class="container-xxl">
     <!-- 上 -->
     <div class="row g-3 justify-content-end">
-      <div class="col-auto">
-        <!-- @input="onInput" -->
-        <!-- @compositionend="onInput" for 中文輸入，但刪除自感應不到 -->
-        <input v-model="keyword" type="text" class="form-control" placeholder="輸入站點地址" />
-      </div>
+      <InputText v-model="keyword" />
       <div class="col-auto"><button type="button" class="btn btn-primary">查詢</button></div>
     </div>
 
