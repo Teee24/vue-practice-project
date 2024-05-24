@@ -88,14 +88,11 @@ function sortBy(condition, order) {
 
 // TODO: stationInfoSort 排序過後的資料
 const stationInfoSort = computed(() => {
-  console.log('sorting!')
   let aftersort = [...afterHighlightData.value]
   if (!currentConditon.value) {
-    console.log(currentConditon.value)
     return aftersort
   }
   let sortedData = afterHighlightData.value.map((item) => ({ ...item }))
-  console.log('corss')
   sortedData.sort(
     (a, b) => currentOrder.value * (a[currentConditon.value] - b[currentConditon.value])
   )
@@ -107,27 +104,21 @@ const currentPage = ref(1) //目前所在的頁數
 // TODO: stationInfo_sliced 分頁過後的資料
 // computed 有偵測到響應式變數改變就觸發
 const stationInfo_sliced = computed(() => {
-  console.log('sliced!')
   let result = []
   result = [...stationInfoSort.value.slice(20 * (currentPage.value - 1), 20 * currentPage.value)]
   // 每頁20筆資料
   return result
 })
 
-// 計算總比數
-const totalInfoLength = computed(() => {
-  return afterHighlightData.value.length
+// 總頁數
+const totalPage = computed(() => {
+  //Math.trunc無條件捨去
+  return afterHighlightData.value.length % 20 == 0
+    ? afterHighlightData.value.length / 20
+    : Math.trunc(afterHighlightData.value.length / 20) + 1
 })
 
 // 每次只顯示10個頁碼
-
-const totalPage = computed(() => {
-  //Math.trunc無條件捨去
-  return totalInfoLength.value % 20 == 0
-    ? totalInfoLength.value / 20
-    : Math.trunc(totalInfoLength.value / 20) + 1
-})
-
 const pageSize = ref(10) //每次顯示頁碼的量
 let stratPage = 0 //顯示頁碼的起始值
 let endPage = 0 //顯示頁碼的結束值
@@ -136,8 +127,18 @@ const displayPage = computed(() => {
   stratPage = currentPage.value
   endPage = stratPage + 9
   pages.value = []
+
   if (endPage > totalPage.value) {
     endPage = totalPage.value
+  }
+
+  if (currentPage.value >= 6) {
+    stratPage = currentPage.value - 4
+    endPage = currentPage.value + 5
+
+    if (endPage > totalPage.value) {
+      endPage = totalPage.value
+    }
   }
 
   for (let i = stratPage; i <= endPage; i++) {
@@ -148,18 +149,14 @@ const displayPage = computed(() => {
 
 // 下一頁
 function nextPage() {
-  if (currentPage.value + 1 > totalPage.value) {
-    currentPage.value = totalPage.value
-  } else {
+  if (currentPage.value < totalPage.value) {
     currentPage.value++
   }
 }
 
 // 上一頁
 function previousPage() {
-  if (currentPage.value === 1) {
-    currentPage.value = 1
-  } else {
+  if (currentPage.value > 1) {
     currentPage.value--
   }
 }
@@ -177,7 +174,7 @@ onMounted(async () => {
 <template>
   <div class="container-xxl">
     <!-- 上 -->
-    <div class="row g-3">
+    <div class="row g-3 justify-content-end">
       <div class="col-auto">
         <!-- @input="onInput" -->
         <!-- @compositionend="onInput" for 中文輸入，但刪除自感應不到 -->
@@ -272,10 +269,14 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
 }
+
 .table-hover > tbody > tr:nth-child(even) td {
   background-color: rgb(247, 247, 247);
 }
 .table-hover > tbody > tr:hover > td {
   background-color: #b5dbff;
+}
+.table-hover > thead > tr > th {
+  color: gray;
 }
 </style>
