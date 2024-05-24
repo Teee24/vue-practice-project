@@ -91,6 +91,7 @@ function sortBy(condition, order) {
 //排序後
 // TODO: stationInfoSort 排序過後的資料
 const stationInfoSort = computed(() => {
+  console.log
   return stationInfo_sliced.value.sort(
     (a, b) => currentOrder.value * (a[currentConditon.value] - b[currentConditon.value])
   )
@@ -98,26 +99,52 @@ const stationInfoSort = computed(() => {
 
 // 計算總比數
 const totalInfoLength = computed(() => {
-  return stationInfoSort.value.length
+  return afterHighlightData.value.length
 })
-// 每次只顯示10個頁碼
-const pageSize = ref(10) //每次顯示頁碼的量
-const stratPage = ref() //顯示頁碼的起始值
-const endPage = ref() //顯示頁碼的結束值
 
-// const displayPage
+// 每次只顯示10個頁碼
+
+const totalPage = computed(() => {
+  //Math.trunc無條件捨去
+  return totalInfoLength.value % 20 == 0
+    ? totalInfoLength.value / 20
+    : Math.trunc(totalInfoLength.value / 20) + 1
+})
+
+const pageSize = ref(10) //每次顯示頁碼的量
+let stratPage = 0 //顯示頁碼的起始值
+let endPage = 0 //顯示頁碼的結束值
+const pages = ref([])
+const displayPage = computed(() => {
+  stratPage = currentPage.value
+  endPage = stratPage + 9
+  pages.value = []
+  if (endPage > totalPage.value) {
+    endPage = totalPage.value
+  }
+
+  for (let i = stratPage; i <= endPage; i++) {
+    pages.value.push(i)
+  }
+  return pages.value
+})
 
 // 下一頁
 function nextPage() {
-  currentPage.value++
+  if (currentPage.value + 1 > totalPage.value) {
+    currentPage.value = totalPage.value
+  } else {
+    currentPage.value++
+  }
 }
 
 // 上一頁
 function previousPage() {
   if (currentPage.value === 1) {
     currentPage.value === 1
+  } else {
+    currentPage.value--
   }
-  currentPage.value--
 }
 
 // 跳頁
@@ -182,7 +209,6 @@ onMounted(async () => {
           <td>{{ dataitem['sna'] }}</td>
           <td>{{ dataitem['sarea'] }}</td>
           <td v-html="dataitem['ar']"></td>
-          <!-- <td>{{ dataitem['ar'] }}</td> -->
           <td>{{ dataitem['total'] }}</td>
           <td>{{ dataitem['available_rent_bikes'] }}</td>
           <td>{{ dataitem['latitude'] }}</td>
@@ -199,7 +225,7 @@ onMounted(async () => {
           <a class="page-link" href="#">上一頁</a>
         </li>
         <li
-          v-for="pageNumber in totalPage"
+          v-for="pageNumber in displayPage"
           :key="pageNumber"
           class="page-item"
           :class="{ active: currentPage === pageNumber }"
