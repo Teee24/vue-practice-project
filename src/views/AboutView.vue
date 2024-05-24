@@ -21,6 +21,11 @@ const afterSearchData = computed(() => {
   return beforeSearchData.value.filter((item) => item['ar'].match(keyword.value))
 })
 
+// 搜尋時要重置
+watch(afterSearchData, () => {
+  currentPage.value = 1
+})
+
 // 標出關鍵字
 // 用map會傳回新的array
 // TODO: afterHighlightData標出關鍵字的資料
@@ -38,15 +43,6 @@ const afterHighlightData = computed(() => {
   } else {
     return afterSearchData.value
   }
-})
-
-// 分頁
-const currentPage = ref(1) //目前所在的頁數
-// TODO: stationInfo_sliced 分頁過後的資料
-// computed 有偵測到響應式變數改變就觸發
-const stationInfo_sliced = computed(() => {
-  // 每頁20筆資料
-  return afterHighlightData.value.slice(20 * (currentPage.value - 1), 20 * currentPage.value)
 })
 
 // 排序
@@ -88,13 +84,34 @@ function sortBy(condition, order) {
   }
 }
 
-//排序後
+// 排序後
+
 // TODO: stationInfoSort 排序過後的資料
 const stationInfoSort = computed(() => {
-  console.log
-  return stationInfo_sliced.value.sort(
+  console.log('sorting!')
+  let aftersort = [...afterHighlightData.value]
+  if (!currentConditon.value) {
+    console.log(currentConditon.value)
+    return aftersort
+  }
+  let sortedData = afterHighlightData.value.map((item) => ({ ...item }))
+  console.log('corss')
+  sortedData.sort(
     (a, b) => currentOrder.value * (a[currentConditon.value] - b[currentConditon.value])
   )
+  return sortedData
+})
+
+// 分頁
+const currentPage = ref(1) //目前所在的頁數
+// TODO: stationInfo_sliced 分頁過後的資料
+// computed 有偵測到響應式變數改變就觸發
+const stationInfo_sliced = computed(() => {
+  console.log('sliced!')
+  let result = []
+  result = [...stationInfoSort.value.slice(20 * (currentPage.value - 1), 20 * currentPage.value)]
+  // 每頁20筆資料
+  return result
 })
 
 // 計算總比數
@@ -141,7 +158,7 @@ function nextPage() {
 // 上一頁
 function previousPage() {
   if (currentPage.value === 1) {
-    currentPage.value === 1
+    currentPage.value = 1
   } else {
     currentPage.value--
   }
@@ -204,7 +221,7 @@ onMounted(async () => {
         </tr>
       </thead>
       <tbody>
-        <tr class="text-center" v-for="(dataitem, index) in stationInfoSort" :key="index">
+        <tr class="text-center" v-for="(dataitem, index) in stationInfo_sliced" :key="index">
           <td>{{ dataitem['sno'] }}</td>
           <td>{{ dataitem['sna'] }}</td>
           <td>{{ dataitem['sarea'] }}</td>
@@ -241,10 +258,6 @@ onMounted(async () => {
 </template>
 
 <style>
-.table-hover > tbody > tr:hover > td {
-  background-color: #cfe2ff;
-}
-
 .catch {
   color: red;
   font-weight: bold;
@@ -258,5 +271,11 @@ onMounted(async () => {
 .icon-container {
   display: flex;
   flex-direction: column;
+}
+.table-hover > tbody > tr:nth-child(even) td {
+  background-color: rgb(247, 247, 247);
+}
+.table-hover > tbody > tr:hover > td {
+  background-color: #b5dbff;
 }
 </style>
