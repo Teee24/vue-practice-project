@@ -4,7 +4,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 const catchkeyword = ref('catch') // 關鍵字樣式
 const keyword = ref('') // 關鍵字
 const beforeSearchData = ref([])
-let totalPageLength = ref(0)
 
 // 撈資料
 async function fetchData() {
@@ -22,17 +21,22 @@ const afterSearchData = computed(() => {
 
 // 標出關鍵字
 // 用map會傳回新的array
-// const highlight = ref()
-const afterHighlightData = afterSearchData.value.map((item) => ({
-  // ...item把item 浅copy成新的
-  ...item,
-  // ar: item['ar']->建立一個名為ar的屬性在新的array裡，值為item['ar']
-  // 用正規表達式避免重複替換，g->golbal，i->不分大小寫
-  ar: item['ar'].replace(new RegExp(keyword.value, 'gi'), (match) => {
-    return `<span class="${catchkeyword.value}">${match}</span>`
-  })
-}))
-console.log(afterHighlightData)
+
+const afterHighlightData = computed(() => {
+  if (keyword.value) {
+    return afterSearchData.value.map((item) => ({
+      // ...item把item 浅copy成新的
+      ...item,
+      // ar: item['ar']->建立一個名為ar的屬性在新的array裡，值為item['ar']
+      // 用正規表達式避免重複替換，g->golbal，i->不分大小寫
+      ar: item['ar'].replace(new RegExp(keyword.value, 'gi'), (match) => {
+        return `<span class="${catchkeyword.value}">${match}</span>`
+      })
+    }))
+  } else {
+    return afterSearchData.value
+  }
+})
 
 // 排序
 // 排序圖示
@@ -74,15 +78,19 @@ function sortBy(condition, order) {
 }
 //排序後
 const stationInfoSort = computed(() => {
-  return afterSearchData.value.sort(
+  return afterHighlightData.value.sort(
     (a, b) => currentOrder.value * (a[currentConditon.value] - b[currentConditon.value])
   )
 })
 
+// 分頁
 const pageSize = ref(10)
 const currentPage = ref(1) //目前所在的頁數
-
-// 分頁
+// 計算總比數
+const totalPageLength = computed(() => {
+  return stationInfoSort.value.length
+})
+console.log('totalpage: ', totalPageLength.value.length)
 
 // computed 有偵測到響應式變數改變就觸發
 const stationInfo_sliced = computed(() => {
@@ -104,12 +112,6 @@ function previousPage() {
 function goToPage(pageNumber) {
   currentPage.value = pageNumber
 }
-
-// 總頁數
-totalPageLength = computed(() => {
-  return stationInfoSort.value.length //總頁數
-})
-console.log('totalpage: ', totalPageLength.value)
 
 onMounted(async () => {
   await fetchData()
